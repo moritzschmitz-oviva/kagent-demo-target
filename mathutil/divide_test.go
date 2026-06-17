@@ -9,6 +9,7 @@ func TestDivide(t *testing.T) {
 	}{
 		{6, 3, 2},
 		{10, 2, 5},
+		{10, 3, 3}, // Test integer division truncation
 		{0, 5, 0},
 		{-6, 3, -2},
 		{-6, -3, 2},
