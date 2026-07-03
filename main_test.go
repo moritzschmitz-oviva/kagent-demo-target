@@ -91,7 +91,7 @@ func TestLiveEndpointNoContent(t *testing.T) {
 
 	// Check the response body is empty.
 	if rr.Body.String() != "" {
-		t.Errorf("handler returned unexpected body: got %q want """,
-			rr.Body.String())
+		t.Errorf("handler returned unexpected body: got %q want %q",
+			rr.Body.String(), "")
 	}
 }
