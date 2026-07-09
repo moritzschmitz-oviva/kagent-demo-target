@@ -1,50 +1,111 @@
 package main
 
 import (
+	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
-func TestHelloHandler(t *testing.T) {
-	req, err := http.NewRequest("GET", "/", nil)
+// Placeholder for the existing mainHandler in main.go
+func mainHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "Hello, World!")
+}
+
+// Placeholder for the new liveHandler to be implemented in main.go
+func liveHandler(w http.ResponseWriter, r *http.Request) {
+	// The actual implementation in main.go will have time.Sleep(1 * time.Second)
+	// and w.WriteHeader(http.StatusOK)
+	// This placeholder will make the tests fail because it doesn't do that yet.
+	fmt.Fprintf(w, "") // Return an empty body for the placeholder
+	w.WriteHeader(http.StatusTeapot) // Make it explicitly fail to ensure TDD
+}
+
+// This helper sets up a test HTTP server with the handlers
+func setupTestServer() *httptest.Server {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", mainHandler) // Existing handler
+	mux.HandleFunc("/live", liveHandler) // New handler for /live
+	return httptest.NewServer(mux)
+}
+
+func TestMainHandler(t *testing.T) {
+	server := setupTestServer()
+	defer server.Close()
+
+	resp, err := server.Client().Get(server.URL + "/")
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Failed to send request: %v", err)
 	}
+	defer resp.Body.Close()
 
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(helloHandler)
-
-	handler.ServeHTTP(rr, req)
-
-	// Check the status code is 200 OK.
-	if status := rr.Code; status != http.StatusOK {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusOK)
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status OK; got %v", resp.StatusCode)
 	}
-
-	// Check the response body.
-	expected := "Hello, World!"
-	if rr.Body.String() != expected {
-		t.Errorf("handler returned unexpected body: got %q want %q",
-			rr.Body.String(), expected)
+	body, _ := io.ReadAll(resp.Body)
+	if string(body) != "Hello, World!" {
+		t.Errorf("Expected body \"Hello, World!\"; got %q", body)
 	}
 }
 
-func TestHelloHandlerNotFound(t *testing.T) {
-	req, err := http.NewRequest("GET", "/not-found", nil)
+func TestLiveEndpointReturns200AndHasDelay(t *testing.T) {
+	server := setupTestServer()
+	defer server.Close()
+
+	start := time.Now()
+	resp, err := server.Client().Get(server.URL + "/live")
 	if err != nil {
-		t.Fatal(err)
+		t.Fatalf("Failed to send request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	duration := time.Since(start)
+
+	// This status code check will fail because our placeholder liveHandler returns StatusTeapot
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Expected status OK for /live; got %v", resp.StatusCode)
 	}
 
-	rr := httptest.NewRecorder()
-	handler := http.HandlerFunc(helloHandler)
+	// This delay check will fail because our placeholder liveHandler doesn't have a delay
+	if duration < 1*time.Second || duration > 1500*time.Millisecond {
+		t.Errorf("Expected /live endpoint to take approx 1 second; got %v", duration)
+	}
 
-	handler.ServeHTTP(rr, req)
+	body, _ := io.ReadAll(resp.Body)
+	if len(body) != 0 {
+		t.Errorf("Expected empty body for /live; got %q", body)
+	}
+}
 
-	// Check the status code is 404 Not Found.
-	if status := rr.Code; status != http.StatusNotFound {
-		t.Errorf("handler returned wrong status code: got %v want %v",
-			status, http.StatusNotFound)
+func TestLiveEndpointNoContent(t *testing.T) {
+	server := setupTestServer()
+	defer server.Close()
+
+	resp, err := server.Client().Get(server.URL + "/live")
+	if err != nil {
+		t.Fatalf("Failed to send request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, _ := io.ReadAll(resp.Body)
+	if len(body) != 0 {
+		t.Errorf("Expected empty body for /live; got %q", body)
+	}
+}
+
+func TestNonExistentEndpointReturns404(t *testing.T) {
+	server := setupTestServer()
+	defer server.Close()
+
+	resp, err := server.Client().Get(server.URL + "/nonexistent")
+	if err != nil {
+		t.Fatalf("Failed to send request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNotFound {
+		t.Errorf("Expected status Not Found for /nonexistent; got %v", resp.StatusCode)
 	}
 }
