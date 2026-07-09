@@ -1,4 +1,5 @@
 # kagent-demo-target
+
 Target repo for autonomous kagent agent demo
 
 ## Go HTTP Hello World Server
@@ -14,3 +15,7 @@ go run main.go
 ```bash
 go test -v ./...
 ```
+
+## Jira Kanban MCP Project
+
+This section is for the Jira Kanban MCP project. More details will be added here soon.
