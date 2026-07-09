@@ -1,5 +1,5 @@
-# kagent-demo-target
-Target repo for autonomous kagent agent demo
+# jira-kanban-mcp
+This is the jira-kanban-mcp project.
 
 ## Go HTTP Hello World Server
 
